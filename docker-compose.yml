@@ -15,14 +15,14 @@ services:
       KAFKA_KRAFT_CLUSTER_ID: 'kraft-cluster-12345'
 
   servicio-usuarios:
-    build: ./microservice-1
+    build: ./microservicio_usuarios
     ports:
       - "5000:5000"
     depends_on:
       - kafka
   
   servicio-notificaciones: 
-    build: ./microservice2
+    build: ./microservicio_notificaciones
     ports:
       - "5001:5001"
     depends_on:
