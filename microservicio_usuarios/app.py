@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify, json
 from werkzeug.security import generate_password_hash
-import os, kafka,time
-from kafka.errors import NoBrokersAvailable
+import kafka
 
 app = Flask(__name__)
 
