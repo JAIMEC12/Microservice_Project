@@ -1,8 +1,6 @@
-from flask import Flask, logging, jsonify
+from flask import Flask, jsonify
 from kafka import KafkaConsumer
-from kafka.errors import NoBrokersAvailable
-import json
-import time,threading
+import json, threading
 
 app = Flask(__name__)
 
@@ -46,9 +44,9 @@ def get_latest_notification():
         return jsonify(notifications[-1])
     return jsonify({"message": "No notifications yet"}), 404
 
-@app.route('/health', methods=['GET'])
-def health_check():
-    return jsonify({"status": "Notification Service is running"}), 200
+# @app.route('/health', methods=['GET'])
+# def health_check():
+#     return jsonify({"status": "Notification Service is running"}), 200
 
 if __name__ == '__main__':
     # Iniciar el consumidor de Kafka en un hilo separado
