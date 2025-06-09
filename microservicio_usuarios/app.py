@@ -15,11 +15,11 @@ db.init_app(app)
 
 # Configurar Kafka
 # Comentados para pruebas sin fallas
-#producer = kafka.KafkaProducer(
-#    bootstrap_servers=['kafka:9092'],
-#    value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-#    api_version=(2, 0, 2)
-#)
+producer = kafka.KafkaProducer(
+   bootstrap_servers=['kafka:9092'],
+   value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+   api_version=(2, 0, 2)
+)
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -40,8 +40,8 @@ def register():
     db.session.commit()
 
     # Enviar a Kafka
-    #producer.send('usuarios', data)
-    #roducer.flush()
+    producer.send('usuarios', data)
+    producer.flush()
 
     return jsonify({
         "mensaje": "Usuario recibido correctamente",
