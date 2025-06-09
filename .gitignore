@@ -1,2 +1,4 @@
 microservicio_usuarios/env
 microservicio_notificaciones/env
+microservicio_usuarios/__pycache__
+microservicio_usuarios/instance
