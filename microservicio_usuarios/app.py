@@ -1,15 +1,25 @@
 from flask import Flask, request, jsonify, json
 from werkzeug.security import generate_password_hash
+from models import db, Usuario  # importar base de datos y modelo
 import os, kafka,time
 from kafka.errors import NoBrokersAvailable
 
 app = Flask(__name__)
 
-producer = kafka.KafkaProducer(
-    bootstrap_servers=['kafka:9092'],
-    value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-    api_version=(2, 0, 2)
-)
+
+# Configurar base de datos (usa SQLite para hacerlo simple)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///usuarios.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
+
+# Configurar Kafka
+# Comentados para pruebas sin fallas
+#producer = kafka.KafkaProducer(
+#    bootstrap_servers=['kafka:9092'],
+#    value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+#    api_version=(2, 0, 2)
+#)
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -24,8 +34,14 @@ def register():
     
     hashed_password = generate_password_hash(password)
 
-    producer.send('usuarios', data)
-    producer.flush()
+      # Guardar en base de datos
+    nuevo_usuario = Usuario(usuario=username, email=email, contrasena=hashed_password)
+    db.session.add(nuevo_usuario)
+    db.session.commit()
+
+    # Enviar a Kafka
+    #producer.send('usuarios', data)
+    #roducer.flush()
 
     return jsonify({
         "mensaje": "Usuario recibido correctamente",
@@ -37,5 +53,6 @@ def register():
     }), 201
 
 if __name__ == '__main__':
-    
+    with app.app_context():
+        db.create_all()
     app.run(host='0.0.0.0', port=5000, debug=True)
