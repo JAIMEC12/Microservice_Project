@@ -1,7 +1,7 @@
 #DEPENDENCIAS 
 from flask import Flask, request, jsonify, json #FUNCIONES DEL FRAMEWORK WEB PARA EL MANEJO DE SOLICITUDES DE DATOS
 from werkzeug.security import generate_password_hash #ENCRIPTACION DE CONTRASENIA
-from microservicio_usuarios.models.models import db, Usuario  #MODELO Y CONFIGURACION DE LA BASE DE DATOS
+from models.models import db, Usuario  #MODELO Y CONFIGURACION DE LA BASE DE DATOS
 from kafka import KafkaProducer #PARA MANEJAR Y GESTIONAR APACHE KAFKA ENTRE LOS DOS MICROSERVICIO, EN ESTE CASO, EL QUE PUBLICA LOS EVENTOS
 
 #CREA UNA INSTANCIA, O COMO TAL LA APLICACION WEB PRINCIPAL
@@ -46,6 +46,10 @@ def register():
     # LUEGO ENVIA EL JSON ANTERIORMENTE EXTRAIDO AL OTRO MICROSERVICIO A TRAVES DE KAFKA
     producer.send('usuarios', data) #ENVIA LOS DATOS DEL USUARIO AL TOPIC USUARIOS DE KAFKA
     producer.flush() #ASEGURA QUE EL MENSAJE SEA ENVIADO INMEDIATAMENTE
+    return jsonify({
+        "mensaje":f"El usuario {username} ha sido creado",
+        "status": "Registrado"
+    }), 200
 
 
 if __name__ == '__main__':

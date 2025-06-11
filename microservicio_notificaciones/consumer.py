@@ -43,9 +43,10 @@ def kafka_consumer_thread():
 def get_notifications():
     #RETORNA UN JSON CON EL TOTAL DE NOTIFICACIONES Y TODAS LAS NOTIFICACIONES QUE SE HA CONSUMIDO
     return jsonify({
+        "mesanje":"Los siguientes usuarios fueron registrados:",
         "total": len(notifications),
-        "notifications": notifications if notifications else "No se ha recibido ninguna notificacion"
-    })
+        "notificaciones": notifications
+    }), 200
 
 
 if __name__ == '__main__':
