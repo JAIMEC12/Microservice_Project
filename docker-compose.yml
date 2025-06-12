@@ -15,6 +15,19 @@ services:
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER #NOMBRE DEL LISTENER PARA LA COMUNICACION DE CONTROLADORES
       KAFKA_KRAFT_CLUSTER_ID: 'Zt65b7XQSmSREeXP1fyPIQ==' #ID DEL CLUSTER KAFKA
       ALLOW_PLAINTEXT_LISTENER: yes #PERMITE CONEXIONES SIN ENCRIPTACION
+      # CONFIGURACIONES ADICIONALES IMPORTANTES
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_CFG_LOG_RETENTION_HOURS: 168
+      KAFKA_CFG_LOG_SEGMENT_BYTES: 1073741824
+      # REDUCIR TIMEOUTS PARA DESARROLLO
+      KAFKA_CFG_REPLICA_FETCH_MAX_WAIT_MS: 500
+      KAFKA_CFG_CONTROLLER_SOCKET_TIMEOUT_MS: 3000
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list || exit 1"]
+      interval: 15s
+      retries: 5
+      start_period: 45s
+      timeout: 10s
 
 
 #MICROSERVICIO USUARIOS - ENCARGADO DEL REGISTRO Y DE PRODUCIR EL EVENTO A COMUNICAR A TRAVES DE KAFKA
@@ -23,11 +36,18 @@ services:
     ports:
       - "5000:5000" #INDICA EN QUE PUERTO SE VA EJECUTAR EL SERVICIO
     depends_on:
-      - kafka #DEPENDE DE KAFKA ESTE CORRIENDO
+      kafka: 
+        condition: service_healthy
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+
   #MICROSERVICIO DE NOTIFICACIONES
   servicio-notificaciones: 
     build: ./microservicio_notificaciones #CONSTRUYE EL MICROSERVICIO DE NOTIFICACIONES DESDE EL DOCKERFILE
     ports:
       - "5001:5001" #INDICA EL PUERTO DE EJECUCION
     depends_on:
-      - kafka #DEPENDE DE KAFKA ESTE CORRIENDO
+      kafka: 
+        condition: service_healthy
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092

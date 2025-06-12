@@ -1,8 +1,8 @@
 #DEPENDENCIAS 
 from flask import Flask, jsonify, json #FUNCIONES DEL FRAMEWORK WEB PARA EL MANEJO DE SOLICITUDES DE DATOS
 from kafka import KafkaConsumer #COMUNICACION CON EL KAFKA, EN ESTE CASO, EL CONSUMIDOR DE EVENTOS 
-import threading #FUNCION PARA EL MANEJO Y CREACION DE HILOS DE PROCESOS
-
+import threading, time #FUNCION PARA EL MANEJO Y CREACION DE HILOS DE PROCESOS
+from kafka.errors import NoBrokersAvailable
 #INSTANCIA DE LA APLICACION FLASK
 app = Flask(__name__)
 
@@ -10,36 +10,59 @@ app = Flask(__name__)
 # ARREGLO DONDE SE VA IR ALMACENANDO LAS NOTIFICACIONES 
 notifications = []
 
-
-# CONFIGURACION DEL CONSUMER DEL KAFKA
-consumer = KafkaConsumer(
-    'usuarios', #TOPIC DEL KAFKA DEL CUAL DEBE LEER LOS MENSAJES
-    bootstrap_servers=['kafka:9092'], #DIRECCION DEL SERVIDOR DE KAFKA
-    auto_offset_reset='latest', #EMPIEZA LEYENDO DESDE LOS MENSAJES MAS RECIENTES
-    enable_auto_commit=True, #CONFIRMA QUE LOS MENSAJES FUERON PROCESADOS
-    group_id='notification_group', #IDENTIFICA ESTE CONSUMIDOR COMO PARTE POR NOTIFICATION_GROUP
-    value_deserializer=lambda m: json.loads(m.decode('utf-8')), #CONVIERTE LOS BYTES EN OBJETOS PYTHON
-    api_version=(2, 0, 2) #API DEL KAFKA
-)
-
-
-#ESTO ES UN HILO EL CUAL SE EJECUTA CONCURRENTEMENTE CON LA INSTANCIA DE FLASK
 def kafka_consumer_thread():
-    #CICLO INFINITO ESCUCHANDO MENSAJES DE KAFKA
-    for message in consumer:
+    consumer = None
+    while True:
         try:
-            #POR CADA MENSAJE PROCESADO CORRECTAMENTE LO AGREGA AL ARREGLO DE NOTIFICACIONES
-            notification_data = message.value
-            notifications.append(notification_data)
-            print(f"Nueva notificación recibida: {notification_data}")
+            if consumer is None:
+                print("🔄 Intentando conectar a Kafka...")
+                consumer = KafkaConsumer(
+                    'usuarios',
+                    bootstrap_servers=['kafka:9092'],
+                    auto_offset_reset='earliest',
+                    enable_auto_commit=True,
+                    client_id = "notificaciones",
+                    group_id='notification_group',
+                    value_deserializer=lambda m: json.loads(m.decode('utf-8')),
+                    api_version=(2, 0, 2),
+                    # consumer_timeout_ms=1000,
+                    # reconnect_backoff_max_ms = 3000,
+                    # # CONFIGURACIONES MÁS ESTABLES PARA EVITAR REBALANCING
+                    # session_timeout_ms = 6000,       # 60 segundos (más tiempo)
+                    # # heartbeat_interval_ms = 2000,    # 20 segundos (más tiempo)  
+                    # # max_poll_interval_ms = 6000,    # 10 minutos (más tiempo)
+                    # request_timeout_ms = 7000,       # 60 segundos
+                    # retry_backoff_ms = 2000,          # 2 segundos entre reintentos
+                    # reconnect_backoff_ms = 2000,      # 2 segundos para reconexión
+                    # # max_poll_records = 10,            # Menos registros por poll (más estable)
+                    # # fetch_min_bytes = 1,              
+                    # # fetch_max_wait_ms = 1000,         # 1 segundo de espera
+                    #  connections_max_idle_ms = 7400 # 9 minutos antes de cerrar conexión idle
+                    # 
+                    )
+                print("✅ Conectado a Kafka exitosamente")
             
+            for message in consumer:
+                notification_data = message.value
+                notifications.append(notification_data)
+                print(f"Nueva notificación recibida: {notification_data}")
+                
+        except NoBrokersAvailable:
+            print("⚠️  Kafka no disponible, reintentando en 5 segundos...")
+            if consumer:
+                consumer.close()
+                consumer = None
+            time.sleep(5)
         except Exception as e:
-            #PARA EVITAR QUE SE CAIGA EL SISTEMA, SE MANEJA LOS ERRORES
-            print(f"Error procesando mensaje: {e}")
+            print(f"❌ Error en consumer: {e}")
+            if consumer:
+                consumer.close()
+                consumer = None
+            time.sleep(5)
 
 
 #DEFINICION DEL ENPOINT PARA LAS NOTIFICACIONES
-@app.route('/notifications', methods=['GET'])
+@app.route('/notificationes', methods=['GET'])
 def get_notifications():
     #RETORNA UN JSON CON EL TOTAL DE NOTIFICACIONES Y TODAS LAS NOTIFICACIONES QUE SE HA CONSUMIDO
     return jsonify({
