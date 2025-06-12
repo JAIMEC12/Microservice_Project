@@ -22,7 +22,7 @@ producer = KafkaProducer(
 
 
 #DEFINICION DEL ENPOINT PARA LA API REST, CON EL METODO POST, PARA EL ENVIO DE DATOS, REGISTRO DE USUARIOS EN ESTE CASO
-@app.route('/register', methods=['POST']) #DEFINE LA RUTE Y EL METODO
+@app.route('/registro', methods=['POST']) #DEFINE LA RUTE Y EL METODO
 def register():
     data = request.get_json() #SE EXTRAE LOS DATOS DADOS POR LA PETICION HTTP(POST)
 
@@ -33,7 +33,8 @@ def register():
 
     #VALIDACION SI TODOS LOS CAMPOS FUERON LLENADOS
     if not username or not email or not password:
-        return jsonify({"error": "Faltan datos obligatorios"}), 400 #DE LO CONTRARIO ENTREGA UN JSON INDICANDO ERROR EN CONJUNTO CON EL ESTADO DE LA PETICION
+        return jsonify({"error": "Faltan datos obligatorios",
+                        "status":"Rechazado"}), 400 #DE LO CONTRARIO ENTREGA UN JSON INDICANDO ERROR EN CONJUNTO CON EL ESTADO DE LA PETICION
     
     #ENCRIPTA LA CONTRASENIA ANTES DE SER ALMACENADA EN LA BASE DE DATOS
     hashed_password = generate_password_hash(password)
@@ -46,6 +47,7 @@ def register():
     # LUEGO ENVIA EL JSON ANTERIORMENTE EXTRAIDO AL OTRO MICROSERVICIO A TRAVES DE KAFKA
     producer.send('usuarios', data) #ENVIA LOS DATOS DEL USUARIO AL TOPIC USUARIOS DE KAFKA
     producer.flush() #ASEGURA QUE EL MENSAJE SEA ENVIADO INMEDIATAMENTE
+    
     return jsonify({
         "mensaje":f"El usuario {username} ha sido creado",
         "status": "Registrado"
